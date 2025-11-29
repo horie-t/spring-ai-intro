@@ -10,3 +10,12 @@
 cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
+
+## フロントエンドエンドの起動
+
+以下のコマンドを実行します。
+
+```bash
+cd frontend
+npm run dev
+```
