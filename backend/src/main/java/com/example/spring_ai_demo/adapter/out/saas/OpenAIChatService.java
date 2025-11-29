@@ -5,7 +5,9 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.stream.Collectors;
 
 @Service
 public class OpenAIChatService {
@@ -16,9 +18,9 @@ public class OpenAIChatService {
     }
 
     @Nullable
-    public Flux<String> withUserMessage(String userMessage) {
+    public Mono<String> withUserMessage(String userMessage) {
         ChatModel model = context.getBean(ChatModel.class);
         ChatClient client = ChatClient.create(model);
-        return client.prompt(userMessage).stream().content();
+        return client.prompt(userMessage).stream().content().collect(Collectors.joining());
     }
 }

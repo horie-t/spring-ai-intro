@@ -9,7 +9,7 @@ import {
 
 const SpringAIModelAdapter: ChatModelAdapter = {
     async run({ messages, abortSignal }) {
-        const result = await fetch("http://localhost:8080", {
+        const result = await fetch("http://localhost:8080/api/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
