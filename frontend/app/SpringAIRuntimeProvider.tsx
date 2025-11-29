@@ -7,10 +7,9 @@ import {
     type ChatModelAdapter,
 } from "@assistant-ui/react";
 
-const MyModelAdapter: ChatModelAdapter = {
+const SpringAIModelAdapter: ChatModelAdapter = {
     async run({ messages, abortSignal }) {
-        // TODO replace with your own API
-        const result = await fetch("<YOUR_API_ENDPOINT>", {
+        const result = await fetch("http://localhost:8080", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -40,7 +39,7 @@ export function SpringAIRuntimeProvider({
                                   }: Readonly<{
     children: ReactNode;
 }>) {
-    const runtime = useLocalRuntime(MyModelAdapter);
+    const runtime = useLocalRuntime(SpringAIModelAdapter);
 
     return (
         <AssistantRuntimeProvider runtime={runtime}>
