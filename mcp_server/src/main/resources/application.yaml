@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: spring-ai-mcp-demo
+  main:
+    banner-mode: off
+    web-application-type: none
+  ai:
+    mcp:
+      server:
+        stdio: true
+        type: SYNC
+        annotation-scanner:
+          enabled: true
+
+logging:
+  file:
+    name: mcp-weather-stdio-server.log
+  level:
+    root: ERROR
+  console:
+    enabled: false
+
+app:
+  openweathermap:
+    api-key: ${OPENWEATHERMAP_API_KEY}
+
+
