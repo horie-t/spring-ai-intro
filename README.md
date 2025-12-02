@@ -1,10 +1,15 @@
 # Spring AI入門
 
-『[Spring AI入門](https://zenn.dev/thorie/books/spring-ai-for-ai-engineering)』を書くため検証コードのリポジトリです。
+本リポジトリでは、[Spring AI](https://spring.io/projects/spring-ai)と[assistant-ui](https://www.assistant-ui.com/)を使ってチャットアプリケーションを実装しています。
+
+アプリケーションの拡張の例として、
+* [Brave Search](https://brave.com/ja/search/)で開発されている[MCP Server](https://github.com/brave/brave-search-mcp-server)
+* [OpenWeatherMap](https://openweathermap.org/)のAPIを呼び出す自作のMCP Server
+を追加しています。
 
 ## 使い方
 
-## MCPサーバのビルド
+## OpenWeatherMap MCPサーバのビルド
 
 まず、MCPサーバのビルドを行います。
 
@@ -47,3 +52,7 @@ cd backend
 cd frontend
 npm run dev
 ```
+
+## コード解説
+
+解説は『[Spring AI入門](https://zenn.dev/thorie/books/spring-ai-for-ai-engineering)』を参照してください。
