@@ -1,0 +1,14 @@
+spring:
+  ai:
+    openai:
+      api-key: <OPENAIのAPI_KEYに書き換えてください>
+    mcp:
+      client:
+        stdio:
+          connections:
+            brave-search-client:
+              env:
+                BRAVE_API_KEY: <BRAVEのAPI_KEYに書き換えてください>
+            openweathermap-client:
+              env:
+                OPENWEATHERMAP_API_KEY: <OPENWEATHERMAPのAPI_KEYに書き換えてください>

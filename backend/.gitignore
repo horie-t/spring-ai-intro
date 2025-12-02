@@ -34,3 +34,4 @@ build/
 
 ### local config ###
 /config/
+application-local.yaml
