@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
     AssistantRuntimeProvider,
     useLocalRuntime,
-    type ChatModelAdapter,
+    type ChatModelAdapter, SimpleImageAttachmentAdapter, CompositeAttachmentAdapter, SimpleTextAttachmentAdapter
 } from "@assistant-ui/react";
 
 const SpringAIModelAdapter: ChatModelAdapter = {
@@ -34,12 +34,20 @@ const SpringAIModelAdapter: ChatModelAdapter = {
     },
 };
 
+const compositeAdapter = new CompositeAttachmentAdapter([
+    new SimpleImageAttachmentAdapter(),
+    new SimpleTextAttachmentAdapter(),
+    // Add more adapters as needed
+]);
+
 export function SpringAIRuntimeProvider({
                                       children,
                                   }: Readonly<{
     children: ReactNode;
 }>) {
-    const runtime = useLocalRuntime(SpringAIModelAdapter);
+    const runtime = useLocalRuntime(SpringAIModelAdapter, {
+        adapters: { attachments: compositeAdapter },
+    });
 
     return (
         <AssistantRuntimeProvider runtime={runtime}>
