@@ -20,18 +20,6 @@ public class ChatController {
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/api/chat")
-//    public AssistantUIContent chat(@RequestBody AssistantUIChatRequest request) {
-//        List<Message> messages = request.getMessages().stream().map(message -> {
-//            var role = message.getRole();
-//            var content = message.getContent().getFirst().getText();
-//            if (role.equals("user")) {
-//                return new UserMessage(content);
-//            } else if (role.equals("assistant")) {
-//                return new AssistantMessage(content);
-//            } else {
-//                throw new IllegalArgumentException("Unsupported message role: " + role);
-//            }
-//        }).collect(Collectors.toUnmodifiableList());
     public AssistantUIContent chat(@RequestBody AssistantUIMessage message) {
         return new AssistantUIContent(chatService.withPrompt(new Prompt(new UserMessage(message.getContent().getFirst().getText()))));
     }
