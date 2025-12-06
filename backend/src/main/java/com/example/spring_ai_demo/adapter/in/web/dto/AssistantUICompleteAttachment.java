@@ -7,5 +7,5 @@ public class AssistantUICompleteAttachment {
     private String type;
     private String name;
     private String contentType;
-    private List<AssistantUIContent> content;
+    private List<AssistantUIThreadUserMessagePart> content;
 }
