@@ -22,15 +22,7 @@ const SpringAIModelAdapter: ChatModelAdapter = {
             signal: abortSignal,
         });
 
-        const data = await result.json();
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: data.text,
-                },
-            ],
-        };
+        return await result.json();
     },
 };
 
