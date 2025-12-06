@@ -15,9 +15,9 @@ const SpringAIModelAdapter: ChatModelAdapter = {
                 "Content-Type": "application/json",
             },
             // forward the messages in the chat to the API
-            body: JSON.stringify({
-                messages,
-            }),
+            body: JSON.stringify(
+                messages.at(-1)
+            ),
             // if the user hits the "cancel" button or escape keyboard key, cancel the request
             signal: abortSignal,
         });
