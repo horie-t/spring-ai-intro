@@ -35,3 +35,6 @@ build/
 ### local config ###
 /config/
 application-local.yaml
+
+### log file ###
+*.log
