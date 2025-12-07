@@ -7,6 +7,23 @@ import {
     type ChatModelAdapter, SimpleImageAttachmentAdapter, CompositeAttachmentAdapter, SimpleTextAttachmentAdapter
 } from "@assistant-ui/react";
 
+/**
+ * データを指定されたファイル名でダウンロードする関数
+ * @param data - 保存したいデータを
+ * @param filename - ダウンロードするファイルの名前（例: 'sample.text'）
+ * @param type - MIMEタイプ（JSONファイルの場合は 'text/plain'）
+ */
+const downloadJsonFile = (data: any, filename: string, type: string = 'text/plain') => {
+    const blob = new Blob([data], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+};
+
 const SpringAIModelAdapter: ChatModelAdapter = {
     async run({ messages, abortSignal }) {
         const result = await fetch("http://localhost:8080/api/chat", {
@@ -22,7 +39,21 @@ const SpringAIModelAdapter: ChatModelAdapter = {
             signal: abortSignal,
         });
 
-        return await result.json();
+        const runResult = await result.json();
+        if (runResult.content.length > 1) {
+            const attachment = runResult.content[1];
+            if (attachment.type === "file") {
+                downloadJsonFile(attachment.data, attachment.filename, attachment.mimeType);
+            }
+        }
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: runResult.content[0].text
+                }
+            ]
+        }
     },
 };
 
