@@ -20,6 +20,7 @@ const SpringAIModelAdapter: ChatModelAdapter = {
             ),
             // if the user hits the "cancel" button or escape keyboard key, cancel the request
             signal: abortSignal,
+            credentials: 'include',
         });
 
         return await result.json();
