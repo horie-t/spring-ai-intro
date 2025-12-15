@@ -8,6 +8,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -77,13 +78,20 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         // テスト用のユーザー定義
         // ユーザー名: user123, パスワード: pass1234
-        var user = org.springframework.security.core.userdetails.User.builder()
+        var user123 = User.builder()
                 .username("user123")
                 // 実際のパスワードをエンコードして設定
                 .password(passwordEncoder.encode("pass1234"))
                 .roles("USER")
                 .build();
+        // 2人目のテストユーザー定義
+        var user456 = User.builder()
+                .username("user456")
+                // 実際のパスワードをエンコードして設定
+                .password(passwordEncoder.encode("pass5678"))
+                .roles("USER")
+                .build();
 
-        return new InMemoryUserDetailsManager(user);
+        return new InMemoryUserDetailsManager(user123, user456);
     }
 }
