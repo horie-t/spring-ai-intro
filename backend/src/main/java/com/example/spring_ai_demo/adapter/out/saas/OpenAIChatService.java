@@ -1,5 +1,7 @@
 package com.example.spring_ai_demo.adapter.out.saas;
 
+import com.example.spring_ai_demo.adapter.in.web.dto.AssistantUITextMessagePart;
+import com.example.spring_ai_demo.adapter.out.saas.dto.AccountTitle;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -27,6 +29,11 @@ public class OpenAIChatService {
     private final SyncMcpToolCallbackProvider syncMcpToolCallbackProvider;
     private final Logger logger = LoggerFactory.getLogger(OpenAIChatService.class);
 
+    private static final String classifyExpensesPromptTemplate = """
+        以下の支出記録を勘定科目に分類してください。
+        支出記録: {expense}
+        """;
+
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider) {
         this.context = context;
         this.chatMemory = chatMemory;
@@ -39,7 +46,18 @@ public class OpenAIChatService {
         return client.prompt(userMessage).call().content();
     }
 
-    public String withPrompt(Prompt prompt) {
+    public AccountTitle classifyExpenses(String expense) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.create(model);
+        return client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                                .text(classifyExpensesPromptTemplate)
+                                .param("expense", expense)
+                        )
+                .call().entity(AccountTitle.class);
+    }
+
+    public AssistantUITextMessagePart withPrompt(Prompt prompt) {
         ChatModel model = context.getBean(ChatModel.class);
         ChatClient client = ChatClient.builder(model)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
@@ -48,7 +66,7 @@ public class OpenAIChatService {
                 .advisors(advisorSpec ->
                     advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
                 )
-                .call().content();
+                .call().entity(AssistantUITextMessagePart.class);
     }
 
     private String getCurrentUsername() {

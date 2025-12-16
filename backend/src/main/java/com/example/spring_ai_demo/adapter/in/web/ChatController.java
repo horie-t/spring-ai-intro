@@ -29,9 +29,9 @@ public class ChatController {
     @PostMapping("/api/chat")
     public AssistantUIChatModelRunResult chat(@RequestBody AssistantUIThreadMessage message, Principal principal) {
         logger.info("Principal: {}", principal);
-        String resultText = chatService.withPrompt(new Prompt(new UserMessage(message.getContent().getFirst().getText())));
+        AssistantUITextMessagePart resultTextMessage = chatService.withPrompt(new Prompt(new UserMessage(message.getContent().getFirst().getText())));
         return new AssistantUIChatModelRunResult(
-                List.of(new AssistantUITextMessagePart(resultText))
+                List.of(resultTextMessage)
         );
     }
 }
