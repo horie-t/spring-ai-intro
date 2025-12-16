@@ -1,5 +1,6 @@
 package com.example.spring_ai_demo.adapter.out.saas;
 
+import com.example.spring_ai_demo.adapter.in.web.dto.AssistantUITextMessagePart;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class OpenAIChatService {
         return client.prompt(userMessage).call().content();
     }
 
-    public String withPrompt(Prompt prompt) {
+    public AssistantUITextMessagePart withPrompt(Prompt prompt) {
         ChatModel model = context.getBean(ChatModel.class);
         ChatClient client = ChatClient.builder(model)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
@@ -48,7 +49,7 @@ public class OpenAIChatService {
                 .advisors(advisorSpec ->
                     advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
                 )
-                .call().content();
+                .call().entity(AssistantUITextMessagePart.class);
     }
 
     private String getCurrentUsername() {
