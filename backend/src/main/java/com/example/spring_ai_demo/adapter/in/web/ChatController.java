@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -27,8 +25,7 @@ public class ChatController {
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/api/chat")
-    public AssistantUIChatModelRunResult chat(@RequestBody AssistantUIThreadMessage message, Principal principal) {
-        logger.info("Principal: {}", principal);
+    public AssistantUIChatModelRunResult chat(@RequestBody AssistantUIThreadMessage message) {
         AssistantUITextMessagePart resultTextMessage = chatService.withPrompt(new Prompt(new UserMessage(message.getContent().getFirst().getText())));
         return new AssistantUIChatModelRunResult(
                 List.of(resultTextMessage)
