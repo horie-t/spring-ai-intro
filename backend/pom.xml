@@ -117,29 +117,46 @@
                         </goals>
                         <configuration>
                             <inputSpec>https://raw.githubusercontent.com/openapitools/openapi-generator/master/modules/openapi-generator/src/test/resources/3_0/petstore.yaml</inputSpec>
-
                             <generatorName>spring</generatorName>
-
-                            <apiPackage>com.example.petstore.api</apiPackage>
-                            <modelPackage>com.example.petstore.model</modelPackage>
-                            <invokerPackage>com.example.petstore.invoker</invokerPackage>
+                            <apiPackage>com.example.petstore.server.api</apiPackage>
+                            <modelPackage>com.example.petstore.server.model</modelPackage>
+                            <invokerPackage>com.example.petstore.server.invoker</invokerPackage>
 
                             <configOptions>
                                 <useSpringBoot3>true</useSpringBoot3>
                                 <useJakartaEe>true</useJakartaEe>
-
                                 <interfaceOnly>true</interfaceOnly>
                                 <skipDefaultInterface>true</skipDefaultInterface>
-
                                 <useTags>true</useTags>
-
                                 <documentationProvider>springdoc</documentationProvider>
-
                                 <dateLibrary>java8</dateLibrary>
-
                                 <useBeanValidation>true</useBeanValidation>
                                 <performBeanValidation>true</performBeanValidation>
+                                <openApiNullable>true</openApiNullable>
+                                <useOptional>true</useOptional>
+                            </configOptions>
 
+                            <typeMappings>
+                                <typeMapping>DateTime=java.time.Instant</typeMapping>
+                            </typeMappings>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-petstore-client</id>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>https://raw.githubusercontent.com/openapitools/openapi-generator/master/modules/openapi-generator/src/test/resources/3_0/petstore.yaml</inputSpec>
+                            <generatorName>java</generatorName>
+                            <library>restclient</library>
+                            <apiPackage>com.example.petstore.client.api</apiPackage>
+                            <modelPackage>com.example.petstore.client.model</modelPackage>
+                            <invokerPackage>com.example.petstore.client.invoker</invokerPackage>
+
+                            <configOptions>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <generateClientAsBean>false</generateClientAsBean>
+                                <dateLibrary>java8</dateLibrary>
                                 <openApiNullable>true</openApiNullable>
                                 <useOptional>true</useOptional>
                             </configOptions>

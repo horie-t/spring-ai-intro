@@ -1,8 +1,8 @@
 package com.example.spring_ai_demo.adapter.in.web;
 
-import com.example.petstore.api.PetApi;
-import com.example.petstore.model.ModelApiResponse;
-import com.example.petstore.model.Pet;
+import com.example.petstore.server.api.PetApi;
+import com.example.petstore.server.model.ModelApiResponse;
+import com.example.petstore.server.model.Pet;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
