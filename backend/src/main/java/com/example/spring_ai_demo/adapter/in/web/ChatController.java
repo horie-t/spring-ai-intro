@@ -1,7 +1,10 @@
 package com.example.spring_ai_demo.adapter.in.web;
 
+import com.example.petstore.client.api.PetApi;
+import com.example.petstore.client.model.Pet;
 import com.example.spring_ai_demo.adapter.in.web.dto.*;
 import com.example.spring_ai_demo.adapter.out.saas.OpenAIChatService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -11,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -30,5 +32,17 @@ public class ChatController {
         return new AssistantUIChatModelRunResult(
                 List.of(resultTextMessage)
         );
+    }
+
+    @PostMapping("/api/chat/pet")
+    public Pet chatWithPet(HttpServletRequest request, PetApi petApi) {
+
+        String sessionId = request.getSession().getId();
+        logger.info("Session ID: " + sessionId);
+
+        petApi.getApiClient()
+                .setBasePath("http://localhost:8080/api/pet-store/")
+                .addDefaultHeader("Cookie", "JSESSIONID=" + sessionId + ";");
+        return petApi.addPet(new Pet().name("Lucky"));
     }
 }

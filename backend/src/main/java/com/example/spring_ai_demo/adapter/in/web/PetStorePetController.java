@@ -10,14 +10,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 @RestController
-@RequestMapping("/api/pet-store")
+@RequestMapping(path = "/api/pet-store", produces = {"application/json", "text/xml"})
 public class PetStorePetController implements PetApi {
 
     @Override
     public ResponseEntity<Pet> addPet(Pet pet) {
-        return null;
+        return ResponseEntity.ok(pet.id(new Random().nextLong()));
     }
 
     @Override
