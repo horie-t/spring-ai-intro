@@ -24,7 +24,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(wrapper, response);
 
-        // 読み込まれた後でもボディを取り出せる
         String body = new String(
                 wrapper.getContentAsByteArray(),
                 request.getCharacterEncoding()

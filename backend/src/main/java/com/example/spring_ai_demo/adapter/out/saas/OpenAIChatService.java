@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Map;
+
 import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 
 @Service
@@ -66,6 +68,8 @@ public class OpenAIChatService {
                 .advisors(advisorSpec ->
                     advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
                 )
+                .tools(new PetStoreTools())
+                .toolContext(Map.of("JSESSIONID", getCurrentSessionId()))
                 .call().entity(AssistantUITextMessagePart.class);
     }
 
