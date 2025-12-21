@@ -33,16 +33,4 @@ public class ChatController {
                 List.of(resultTextMessage)
         );
     }
-
-    @PostMapping("/api/chat/pet")
-    public Pet chatWithPet(HttpServletRequest request, PetApi petApi) {
-
-        String sessionId = request.getSession().getId();
-        logger.info("Session ID: " + sessionId);
-
-        petApi.getApiClient()
-                .setBasePath("http://localhost:8080/api/pet-store/")
-                .addDefaultHeader("Cookie", "JSESSIONID=" + sessionId + ";");
-        return petApi.addPet(new Pet().name("Lucky"));
-    }
 }
