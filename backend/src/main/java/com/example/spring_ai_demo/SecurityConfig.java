@@ -91,7 +91,14 @@ public class SecurityConfig {
                 .password(passwordEncoder.encode("pass5678"))
                 .roles("USER")
                 .build();
+        // ファイル検索テストユーザ
+        var tetsuya = User.builder()
+                .username("tetsuya")
+                // 実際のパスワードをエンコードして設定
+                .password(passwordEncoder.encode("pass_tetsuya"))
+                .roles("USER")
+                .build();
 
-        return new InMemoryUserDetailsManager(user123, user456);
+        return new InMemoryUserDetailsManager(user123, user456, tetsuya);
     }
 }

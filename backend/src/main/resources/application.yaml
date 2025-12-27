@@ -7,6 +7,12 @@ spring:
       chat:
         options:
           model: gpt-4.1-2025-04-14
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        initialize-schema: true
     mcp:
       client:
         stdio:
