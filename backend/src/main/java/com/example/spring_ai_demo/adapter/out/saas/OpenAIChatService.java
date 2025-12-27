@@ -1,6 +1,7 @@
 package com.example.spring_ai_demo.adapter.out.saas;
 
 import com.example.spring_ai_demo.adapter.in.web.dto.AssistantUITextMessagePart;
+import com.example.spring_ai_demo.adapter.out.persistence.RagSearchTool;
 import com.example.spring_ai_demo.adapter.out.saas.dto.AccountTitle;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -12,6 +13,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +31,7 @@ public class OpenAIChatService {
     private final ApplicationContext context;
     private final ChatMemory chatMemory;
     private final SyncMcpToolCallbackProvider syncMcpToolCallbackProvider;
+    private final VectorStore vectorStore;
     private final Logger logger = LoggerFactory.getLogger(OpenAIChatService.class);
 
     private static final String classifyExpensesPromptTemplate = """
@@ -36,10 +39,11 @@ public class OpenAIChatService {
         支出記録: {expense}
         """;
 
-    public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider) {
+    public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
         this.context = context;
         this.chatMemory = chatMemory;
         this.syncMcpToolCallbackProvider = syncMcpToolCallbackProvider;
+        this.vectorStore = vectorStore;
     }
 
     public String withUserMessage(String userMessage) {
@@ -68,8 +72,8 @@ public class OpenAIChatService {
                 .advisors(advisorSpec ->
                     advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
                 )
-                .tools(new PetStoreTools())
-                .toolContext(Map.of("JSESSIONID", getCurrentSessionId()))
+                .tools(new PetStoreTools(), new RagSearchTool(vectorStore))
+                .toolContext(Map.of("JSESSIONID", getCurrentSessionId(), "username", getCurrentUsername()))
                 .call().entity(AssistantUITextMessagePart.class);
     }
 
