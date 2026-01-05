@@ -5,6 +5,8 @@ import com.example.spring_ai_demo.adapter.out.persistence.RagSearchTool;
 import com.example.spring_ai_demo.adapter.out.saas.dto.AccountTitle;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -37,6 +39,18 @@ public class OpenAIChatService {
     private static final String classifyExpensesPromptTemplate = """
         以下の支出記録を勘定科目に分類してください。
         支出記録: {expense}
+        """;
+
+    private static final String translateToEnglishPromptTemplate = """
+        以下を英語に翻訳してください。
+        ---
+        {query}
+        """;
+
+    private static final String translateToJapanesePromptTemplate = """
+        以下を日本語に翻訳してください。
+        ---
+        {query}
         """;
 
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
@@ -77,6 +91,31 @@ public class OpenAIChatService {
                 .call().entity(AssistantUITextMessagePart.class);
     }
 
+    public AssistantUITextMessagePart searchInEnglish(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.builder(model)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
+
+        var englishPrompt = client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                        .text(translateToEnglishPromptTemplate)
+                        .param("query", prompt.getContents())
+                ).call().entity(TranslationResult.class).getTranslatedText();
+        logger.info("English Prompt: {}", englishPrompt);
+        var englishSearchResult = client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                        .text(englishPrompt))
+                .toolCallbacks(syncMcpToolCallbackProvider)
+                .call().content();
+        logger.info("English Search Result: {}", englishSearchResult);
+        return client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                        .text(translateToJapanesePromptTemplate)
+                        .param("query", englishSearchResult))
+                .call().entity(AssistantUITextMessagePart.class);
+    }
+
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -109,5 +148,11 @@ public class OpenAIChatService {
         } else {
             return "No active session in service layer";
         }
+    }
+
+    @Setter
+    @Getter
+    public static class TranslationResult {
+        private String translatedText;
     }
 }

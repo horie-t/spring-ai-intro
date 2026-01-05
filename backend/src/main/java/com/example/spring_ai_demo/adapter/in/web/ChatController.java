@@ -33,4 +33,12 @@ public class ChatController {
                 List.of(resultTextMessage)
         );
     }
+
+    @PostMapping("/api/chat_en")
+    public AssistantUIChatModelRunResult chat_en(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.searchInEnglish(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
 }
