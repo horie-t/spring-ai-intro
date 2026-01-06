@@ -41,4 +41,12 @@ public class ChatController {
                 List.of(resultTextMessage)
         );
     }
+
+    @PostMapping("/api/chat_routing")
+    public AssistantUIChatModelRunResult chat_routing(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.withRouting(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
 }

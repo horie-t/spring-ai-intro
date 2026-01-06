@@ -53,6 +53,12 @@ public class OpenAIChatService {
         {query}
         """;
 
+    private static final String routingPromptTemplate = """
+        以下のユーザークエリに基づいて、適切なルートを選択してください。
+        ---
+        {query}
+        """;
+
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
         this.context = context;
         this.chatMemory = chatMemory;
@@ -75,6 +81,27 @@ public class OpenAIChatService {
                                 .param("expense", expense)
                         )
                 .call().entity(AccountTitle.class);
+    }
+    public AssistantUITextMessagePart classifyExpenses(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.create(model);
+        var accountTitle = client.prompt(prompt)
+                .call().entity(AccountTitle.class);
+        return new AssistantUITextMessagePart(accountTitle.getEnglishNameAlternative());
+    }
+
+    public AssistantUITextMessagePart addPet(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.builder(model)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .defaultToolCallbacks(syncMcpToolCallbackProvider).build();
+        return client.prompt(prompt)
+                .advisors(advisorSpec ->
+                        advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
+                )
+                .tools(new PetStoreTools())
+                .toolContext(Map.of("JSESSIONID", getCurrentSessionId()))
+                .call().entity(AssistantUITextMessagePart.class);
     }
 
     public AssistantUITextMessagePart withPrompt(Prompt prompt) {
@@ -116,6 +143,24 @@ public class OpenAIChatService {
                 .call().entity(AssistantUITextMessagePart.class);
     }
 
+    public AssistantUITextMessagePart withRouting(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.builder(model)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
+        var workflowRoute = client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                        .text(translateToEnglishPromptTemplate)
+                        .param("query", prompt.getContents())
+                ).call().entity(WorkflowRoute.class);
+        logger.info("workflowRoute: {}", workflowRoute);
+        return switch (workflowRoute) {
+            case EXPENSE_CLASSIFICATION -> classifyExpenses(prompt);
+            case SEARCH_IN_ENGLISH -> searchInEnglish(prompt);
+            case PET_STORE_ADD_PET -> addPet(prompt);
+        };
+    }
+
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -154,5 +199,11 @@ public class OpenAIChatService {
     @Getter
     public static class TranslationResult {
         private String translatedText;
+    }
+
+    public enum WorkflowRoute {
+        EXPENSE_CLASSIFICATION,
+        SEARCH_IN_ENGLISH,
+        PET_STORE_ADD_PET
     }
 }
