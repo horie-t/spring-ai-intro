@@ -24,7 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 
@@ -58,6 +62,35 @@ public class OpenAIChatService {
         ---
         {query}
         """;
+
+    private static final String threatDetectionSocialEngineeringExpertPromptTemplate = """
+        以下のメールのメール送信者の「意図」と「心理的操作」に注目して分析してください。
+        緊急性の強調、権威への訴え、罪悪感の利用など、ソーシャルエンジニアリングの手口がないか？
+        危険度スコア（0-100）を出力してください。
+        ---
+        {emailContent}
+        """;
+
+    private static final String threatDetectionLinguisticForensicsPromptTemplate = """
+        以下のメールのメールの「文体」と「言語パターン」を分析してください。
+        不自然な文法、ネイティブらしくない表現の混在、組織の公式文書とかけ離れたフォーマットなどを検知してください。
+        危険度スコア（0-100）を出力してください。
+        ---
+        {emailContent}
+        """;
+
+    private static final String threatDetectionTechnicalHeaderAnalystPromptTemplate = """
+        以下のメールのメールに含まれるドメイン、URL構造、および技術的な矛盾点（表示名とアドレスの不一致など）に注目してください。
+        危険度スコア（0-100）を出力してください。
+        ---
+        {emailContent}
+        """;
+
+    private static final List<String> threatDetectionPromptTemplates = List.of(
+            threatDetectionSocialEngineeringExpertPromptTemplate,
+            threatDetectionLinguisticForensicsPromptTemplate,
+            threatDetectionTechnicalHeaderAnalystPromptTemplate
+    );
 
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
         this.context = context;
@@ -161,6 +194,39 @@ public class OpenAIChatService {
         };
     }
 
+    public AssistantUITextMessagePart detectSpearPhishing(Prompt prompt) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(threatDetectionPromptTemplates.size())) {
+            List<CompletableFuture<RiskScore>> riskFutures = threatDetectionPromptTemplates.stream()
+                    .map(template ->
+                            CompletableFuture.supplyAsync(() -> {
+                                ChatModel model = context.getBean(ChatModel.class);
+                                ChatClient client = ChatClient.create(model);
+                                return client.prompt()
+                                        .user(promptUserSpec -> promptUserSpec
+                                                .text(template)
+                                                .param("emailContent", prompt.getContents())
+                                        ).call().entity(RiskScore.class);
+                            }, executor)
+                    ).toList();
+            CompletableFuture.allOf(riskFutures.toArray(new CompletableFuture[0])).join();
+            var riskCount = riskFutures.stream()
+                    .filter(future -> {
+                        try {
+                            return future.get().score() >= 80.0;
+                        } catch (Exception e) {
+                            logger.error("Error getting risk score", e);
+                            return false;
+                        }
+                    })
+                    .count();
+            if (riskCount >= 2) {
+                return new AssistantUITextMessagePart("Spear phishing detected with high risk score.");
+            } else {
+                return new AssistantUITextMessagePart("No spear phishing detected.");
+            }
+        }
+    }
+
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -205,5 +271,8 @@ public class OpenAIChatService {
         EXPENSE_CLASSIFICATION,
         SEARCH_IN_ENGLISH,
         PET_STORE_ADD_PET
+    }
+
+    public record RiskScore(double score) {
     }
 }
