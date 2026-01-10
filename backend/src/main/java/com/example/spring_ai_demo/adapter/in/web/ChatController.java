@@ -57,4 +57,12 @@ public class ChatController {
                 List.of(resultTextMessage)
         );
     }
+
+    @PostMapping("/api/chat-generate-report")
+    public AssistantUIChatModelRunResult chat_generate_report(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.generateComprehensiveReport(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
 }

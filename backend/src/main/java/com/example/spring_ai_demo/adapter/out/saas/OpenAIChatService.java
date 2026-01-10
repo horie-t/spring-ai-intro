@@ -17,6 +17,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 
@@ -91,6 +93,33 @@ public class OpenAIChatService {
             threatDetectionLinguisticForensicsPromptTemplate,
             threatDetectionTechnicalHeaderAnalystPromptTemplate
     );
+
+    private static final String comprehensiveReportPlanningSystemPrompt = """
+        包括的なレポートを作成するタスクです。まず必要なセクション（章）を定義し、各セクションについてリサーチ担当者に向けて具体的な指示を文章で作成してください。なお、すべてのセクション案と指示が揃うまでは最終出力を行わず、必要であればステップごとに情報を整理し、内容が十分かつ体系的になるよう思考してください（チェーン・オブ・シンキングを推奨します）。
+        
+        ## 指示手順
+        
+        1. テーマ [に関するレポートテーマを入力/指定] について、論点や分析視点を検討し、網羅的に必要な主要セクション（3章以上が望ましい）を箇条書きで洗い出してください。
+        2. 各セクション（章）ごとに、その内容を執筆・調査すべき担当者向けの具体的な指示文を作成してください。
+           - 指示文には：目的、調査や分析すべき観点、使用するべきデータ・事例・参考資料例、注意事項、論述の深さや分量イメージなどを必ず含めてください。
+        3. 各セクション案・指示は一つずつ問題がないか検証し、必要があれば追加・統合・修正・並び順の再考を経て、レポート構成として最適化してください。
+        4. まとめのセクションは、セクションの完成後に改めて追加するので、ここでは含めないでください。
+        5. 最後に本レポート全体のタイトルを定義してください。
+        """;
+
+    private static final String comprehensiveReportSectionCreationPromptTemplate = """
+        包括的なレポートの一つの章を執筆するタスクです。章の見出しレベルは2から始めてレポートします。
+        ---
+        章番号: {sectionNumber}
+        章の見出し: {sectionTitle}
+        症の内容: {sectionInstructions}
+        """;
+
+    private static final String comprehensiveReportSummaryPromptTemplate = """
+        包括的なレポートのまとめのセクションを作成します。
+        ---------------
+        {report}
+        """;
 
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
         this.context = context;
@@ -227,6 +256,54 @@ public class OpenAIChatService {
         }
     }
 
+    public AssistantUITextMessagePart generateComprehensiveReport(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.builder(model)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
+
+        var plan = client.prompt()
+                .system(comprehensiveReportPlanningSystemPrompt)
+                .user(promptUserSpec -> promptUserSpec
+                        .text(prompt.getContents())
+                ).call()
+                .entity(ReportPlan.class);
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(plan.reportSections().size())) {
+            List<CompletableFuture<ReportSection>> sectionFuture = IntStream.range(0, plan.reportSections().size())
+                    .mapToObj(i -> CompletableFuture.supplyAsync(() -> {
+                        var sectionPlan = plan.reportSections().get(i);
+                        ChatModel sectionModel = context.getBean(ChatModel.class);
+                        ChatClient sectionClient = ChatClient.create(sectionModel);
+                        var sectionContent = sectionClient.prompt()
+                                .user(promptUserSpec -> promptUserSpec
+                                        .text(comprehensiveReportSectionCreationPromptTemplate)
+                                        .param("sectionNumber", String.valueOf(i + 1))
+                                        .param("sectionTitle", sectionPlan.sectionName())
+                                        .param("sectionInstructions", sectionPlan.sectionInstructions())
+                                ).call().content();
+                        return new ReportSection(sectionPlan.sectionName(), sectionContent);
+                    }, executor))
+                    .toList();
+            CompletableFuture.allOf(sectionFuture.toArray(new CompletableFuture[0])).join();
+
+            var report = new StringBuffer();
+            report.append("# ").append(plan.reportTitle()).append("\n\n");
+            for (var section : sectionFuture) {
+                report.append(section.join().sectionContent()).append("\n\n");
+            }
+
+            var summary = client.prompt()
+                    .user(promptUserSpec -> promptUserSpec
+                            .text(comprehensiveReportSummaryPromptTemplate)
+                            .param("report", report.toString())
+                    ).call().content();
+            report.append(summary);
+
+            return new AssistantUITextMessagePart(report.toString());
+        }
+    }
+
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -274,5 +351,14 @@ public class OpenAIChatService {
     }
 
     public record RiskScore(double score) {
+    }
+
+    public record ReportPlan(String reportTitle, List<ReportSectionPlan> reportSections) {
+    }
+
+    public record ReportSectionPlan(String sectionName, String sectionInstructions) {
+    }
+
+    public record ReportSection(String sectionName, String sectionContent) {
     }
 }
