@@ -65,4 +65,12 @@ public class ChatController {
                 List.of(resultTextMessage)
         );
     }
+
+    @PostMapping("/api/chat-translating")
+    public AssistantUIChatModelRunResult chat_translating(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.translateWithRevision(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
 }

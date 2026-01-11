@@ -27,6 +27,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -119,6 +120,16 @@ public class OpenAIChatService {
         包括的なレポートのまとめのセクションを作成します。
         ---------------
         {report}
+        """;
+
+    private static final String criticizingTranslationSystemPrompt = """
+        文芸翻訳の批評家として、日本語から他言語（または他言語から日本語）への文芸作品の翻訳を批評してください。
+        
+        - 作品の原文と翻訳文を比較し、訳文の自然さ、表現の正確さ、文化的ニュアンス、スタイル・文体の再現性、読者に与える印象などの観点から詳細に分析します。
+        - 必ず批評の根拠となる具体的な原文フレーズや翻訳部分を明示し、その上で理由を挙げて説明してください。
+        - 批評箇所ごとに「理由・根拠（比較・観察・分析）」を述べてください。
+        - 批評の結論や総評は不要です。
+        - 全体としての翻訳スコア（0-100）を出力してください。
         """;
 
     public OpenAIChatService(ApplicationContext context, ChatMemory chatMemory, SyncMcpToolCallbackProvider syncMcpToolCallbackProvider, VectorStore vectorStore) {
@@ -304,6 +315,65 @@ public class OpenAIChatService {
         }
     }
 
+    public AssistantUITextMessagePart translateWithRevision(Prompt prompt) {
+        int attempts = 0;
+        var translationRecord = translate(prompt);
+
+        logger.info("first translation: {}", translationRecord.translatedText());
+        while (true) {
+            var evaluation = criticizeTranslation(translationRecord);
+            logger.info("evaluation: {}", evaluation);
+
+            if (evaluation.score() >= 80.0 || attempts++ >= 3) {
+                return new AssistantUITextMessagePart(translationRecord.translatedText());
+            }
+
+            var revisedTranslation = reviseTranslation(translationRecord, evaluation);
+            logger.info("revised translation: {}", revisedTranslation.translatedText());
+            translationRecord = new TranslationRecord(translationRecord.sourceLanguageCode, translationRecord.targetLanguageCode,
+                    translationRecord.sourceText(), revisedTranslation.translatedText());
+        }
+    }
+
+    private TranslationRecord translate(Prompt prompt) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.create(model);
+        return client.prompt()
+                .user(promptUserSpec -> promptUserSpec
+                        .text(translateToEnglishPromptTemplate)
+                        .param("query", prompt.getContents())
+                ).call().entity(TranslationRecord.class);
+    }
+
+    private TranslationCriticismEvaluation criticizeTranslation(TranslationRecord translationRecord) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.create(model);
+        return client.prompt()
+                .system(criticizingTranslationSystemPrompt)
+                .user(promptUserSpec -> promptUserSpec
+                        .text("原文: " + translationRecord.sourceText() + "\n\n翻訳文: " + translationRecord.translatedText())
+                ).call().entity(TranslationCriticismEvaluation.class);
+    }
+
+    private TranslationRecord reviseTranslation(TranslationRecord translationRecord, TranslationCriticismEvaluation evaluation) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.create(model);
+
+        var revisePromptBuilder = new StringBuilder();
+        revisePromptBuilder.append("以下の翻訳文を改訂してください。\n");
+        revisePromptBuilder.append("原文: ").append(translationRecord.sourceText()).append("\n");
+        revisePromptBuilder.append("翻訳文: ").append(translationRecord.translatedText()).append("\n\n");
+        revisePromptBuilder.append("批評:\n");
+        for (var criticism : evaluation.criticisms()) {
+            revisePromptBuilder.append("- 原文フレーズ: ").append(criticism.sourceSentence()).append("\n");
+            revisePromptBuilder.append("  翻訳文フレーズ: ").append(criticism.targetSentence()).append("\n");
+            revisePromptBuilder.append("  批評: ").append(criticism.criticism()).append("\n");
+            revisePromptBuilder.append("  理由: ").append(criticism.reason()).append("\n\n");
+        }
+
+        return client.prompt(revisePromptBuilder.toString()).call().entity(TranslationRecord.class);
+    }
+
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -360,5 +430,14 @@ public class OpenAIChatService {
     }
 
     public record ReportSection(String sectionName, String sectionContent) {
+    }
+
+    public record TranslationRecord(String sourceLanguageCode, String targetLanguageCode, String sourceText, String translatedText) {
+    }
+
+    public record TranslationCriticism(String sourceSentence, String targetSentence, String criticism, String reason) {
+    }
+
+    public record TranslationCriticismEvaluation(List<TranslationCriticism> criticisms, double score) {
     }
 }
