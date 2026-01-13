@@ -34,9 +34,41 @@ public class ChatController {
         );
     }
 
-    @PostMapping("/api/chat_en")
+    @PostMapping("/api/chat-en")
     public AssistantUIChatModelRunResult chat_en(@RequestBody String message) {
         AssistantUITextMessagePart resultTextMessage = chatService.searchInEnglish(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
+
+    @PostMapping("/api/chat-routing")
+    public AssistantUIChatModelRunResult chat_routing(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.withRouting(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
+
+    @PostMapping("/api/chat-email-spear-phishing")
+    public AssistantUIChatModelRunResult chat_email_threat(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.detectSpearPhishing(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
+
+    @PostMapping("/api/chat-generate-report")
+    public AssistantUIChatModelRunResult chat_generate_report(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.generateComprehensiveReport(new Prompt(new UserMessage(message)));
+        return new AssistantUIChatModelRunResult(
+                List.of(resultTextMessage)
+        );
+    }
+
+    @PostMapping("/api/chat-translating")
+    public AssistantUIChatModelRunResult chat_translating(@RequestBody String message) {
+        AssistantUITextMessagePart resultTextMessage = chatService.translateWithRevision(new Prompt(new UserMessage(message)));
         return new AssistantUIChatModelRunResult(
                 List.of(resultTextMessage)
         );
