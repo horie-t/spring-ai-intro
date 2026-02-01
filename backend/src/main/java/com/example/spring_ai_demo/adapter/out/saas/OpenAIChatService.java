@@ -18,10 +18,12 @@ import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeType;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -185,6 +187,23 @@ public class OpenAIChatService {
         return client.prompt(prompt)
                 .advisors(advisorSpec ->
                     advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
+                )
+                .tools(new PetStoreTools(), new RagSearchTool(vectorStore))
+                .toolContext(Map.of("JSESSIONID", getCurrentSessionId(), "username", getCurrentUsername()))
+                .call().entity(AssistantUITextMessagePart.class);
+    }
+
+    public AssistantUITextMessagePart withPrompt(Prompt prompt, Resource imageResource, MimeType mimeType) {
+        ChatModel model = context.getBean(ChatModel.class);
+        ChatClient client = ChatClient.builder(model)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .defaultToolCallbacks(syncMcpToolCallbackProvider).build();
+        return client.prompt()
+                .user(userSpec -> userSpec
+                        .text(prompt.getContents())
+                        .media(mimeType, imageResource))
+                .advisors(advisorSpec ->
+                        advisorSpec.param(CONVERSATION_ID, getCurrentUsername() + "-" + getCurrentSessionId())
                 )
                 .tools(new PetStoreTools(), new RagSearchTool(vectorStore))
                 .toolContext(Map.of("JSESSIONID", getCurrentSessionId(), "username", getCurrentUsername()))

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,7 +29,20 @@ public class ChatController {
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/api/chat")
     public AssistantUIChatModelRunResult chat(@RequestBody AssistantUIThreadMessage message) {
-        AssistantUITextMessagePart resultTextMessage = chatService.withPrompt(new Prompt(new UserMessage(message.getContent().getFirst().getText())));
+        var prompt = new Prompt(new UserMessage(message.getContent().getFirst().getText()));
+        if (! message.getAttachments().isEmpty()) {
+            var attachment = message.getAttachments().getFirst().getContent().getFirst();
+            if (attachment instanceof AssistantUIImageMessagePart) {
+                DataUri imageData = DataUri.parse(((AssistantUIImageMessagePart) attachment).getImage());
+                AssistantUITextMessagePart resultTextMessage = chatService.withPrompt(prompt,
+                        imageData.toResource(), imageData.mimeType());
+                return new AssistantUIChatModelRunResult(
+                        List.of(resultTextMessage)
+                );
+            }
+        }
+
+        AssistantUITextMessagePart resultTextMessage = chatService.withPrompt(prompt);
         return new AssistantUIChatModelRunResult(
                 List.of(resultTextMessage)
         );

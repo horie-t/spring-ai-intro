@@ -5,6 +5,6 @@ import lombok.Data;
 
 @AllArgsConstructor
 @Data
-public class AssistantUITextMessagePart implements AssistantUIThreadAssistantMessagePart {
+public class AssistantUITextMessagePart implements AssistantUIThreadUserMessagePart, AssistantUIThreadAssistantMessagePart {
     private String text;
 }
