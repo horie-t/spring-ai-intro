@@ -10,7 +10,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "type" // JSONリクエストボディに含まれる型情報のキー
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = AssistantUITextMessagePart.class, name = "text")
+        @JsonSubTypes.Type(value = AssistantUITextMessagePart.class, name = "text"),
+        @JsonSubTypes.Type(value = AssistantUIImageMessagePart.class, name = "image")
 })
 public interface AssistantUIThreadUserMessagePart {
 }
